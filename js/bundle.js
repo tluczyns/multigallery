@@ -1087,6 +1087,7 @@ class MultiItemGallery {
 		this.objData = objData;
 		this.elem = document.createElement("div");
 		this.elem.className = this._nameParamItem;
+		this.elem.style.display = "block";
 		this.elem.onclick = this.onClick.bind(this);
 		this.styleElem = this.elem.style;
 	}
@@ -1112,7 +1113,7 @@ class MultiItemGallery {
 				stylesForDimensions[suffixNameStyle] = MapCssStyle.get(this._nameParamItem + "_dimension_" + String(i) + "_" + suffixNameStyle);
 			this.arrStylesForDimensions[i] = stylesForDimensions;
 		}
-		this.styleElem.backgroundColor = MathExt.convertColorUintToHTML(this.objData.color);
+		this.styleElem.backgroundColor = MathExt.convertColorUintToHTML(parseInt(this.objData.color.replace(/^#/, ''), 16));
 	}
 	
 	
@@ -1499,7 +1500,7 @@ let StateModel  = (() => {
 })();
 
 class MultiCircleGallery extends EventReceiver {
-	constructor(nameUnique = "", arrData, optionsController, optionsVisual) {
+	constructor(nameUnique = "", optionsController, optionsVisual) {
 		super();
 		this._arrData;
 		this.arrCountRenderableInRow;
@@ -1531,33 +1532,12 @@ class MultiCircleGallery extends EventReceiver {
 		this._intervalChangeItem;
 		this._isSelectFromAuto;
 		
-		
-		//arrData = [[0xff0000, 0xff0000, 0x00ff00, 0x0000ff, 0x000000], [0xff00ff, 0x00ffff, 0xffff00, 0xff0077], [0x7700ff, 0xff0077, 0xff77ff, 0xff7777], [0x333333, 0x666666, 0x999999, 0xcccccc]];
-		//arrData = [[0xff0000, 0x00ff00, 0x0000ff], [0xffff00, 0xff0077, 0x541466], [0x666666, 0x999999, 0xcccccc], [0x000000]];
-		//arrData = [[0xff0000, 0x00ff00, 0x0000ff], [0xffff00, 0xff0077], [0x999999, 0xcccccc]];
-		//arrData = [[0xff0000, 0x00ff00], [0xffff00, 0xff0077]];
-		/*let lenX: uint = 300;
-		let lenY: uint = 300;
-		arrData = new Array(lenX);
-		for (let i:int = 0; i < lenX; i++) {
-			arrData[i] = new Array(lenY);
-			for (let j:int = 0; j < lenY; j++) {
-				arrData[i][j] = Math.floor(Math.random() * 16777216);
-			}
-		}*/
-		/*arrData = [[[0xff0000, 0x00ff00, 0x0000ff, 0x000000], [0xff0000, 0x00ff00, 0x0000ff, 0x000000], [0xff0000, 0x00ff00, 0x0000ff, 0x000000], [0xff0000, 0x00ff00, 0x0000ff, 0x000000]], 
-		[[0xff00ff, 0x00ffff, 0xffff00, 0xff0077], [0xff00ff, 0x00ffff, 0xffff00, 0xff0077], [0xff00ff, 0x00ffff, 0xffff00, 0xff0077], [0xff00ff, 0x00ffff, 0xffff00, 0xff0077]],
-		[[0x7700ff, 0xff0077, 0xff77ff, 0xff7777], [0x7700ff, 0xff0077, 0xff77ff, 0xff7777], [0x7700ff, 0xff0077, 0xff77ff, 0xff7777], [0x7700ff, 0xff0077, 0xff77ff, 0xff7777]], 
-		[[0x333333, 0x666666, 0x999999, 0xcccccc], [0x333333, 0x666666, 0x999999, 0xcccccc], [0x333333, 0x666666, 0x999999, 0xcccccc], [0x333333, 0x666666, 0x999999, 0xcccccc]]];*/
-
 		this.nameParamItem = MultiCircleGallery.BASE_NAME_PARAMETER_ID_ITEM_GALLERY + "_" + nameUnique; //ig_nameUnique
 		this.optionsController = optionsController || new OptionsControllerMulti();
 		this.optionsVisual = optionsVisual || new OptionsVisualMulti();
 		this._setElem(nameUnique);
-		this._prepareArrData();
-		
-		if (arrData && arrData.length) {
-			this._arrData = arrData;
+		this._arrData = this._prepareArrDataFromHTML();
+		if (this._arrData && this._arrData.length) {
 			if (this._arrData.length == 1) this.optionsController.isAutoChangeItem = false;
 			this.createArrCountRenderableInRow();
 			this.createItems();
@@ -1581,11 +1561,12 @@ class MultiCircleGallery extends EventReceiver {
 		}
 	}
 	
-	_prepareArrData() {
-		/*this._arrData 
-		this.elem.getElementsByClassName(this.nameParamItem + "_row" );*/
-		
-		
+	_prepareArrDataFromHTML(elemParent = this.elem) {
+		var subArrData = [].filter.call(elemParent.getElementsByClassName(this.nameParamItem + "_row"), (elem) => elem.parentNode == elemParent).map((elem) => this._prepareArrDataFromHTML(elem)).concat([].filter.call(elemParent.getElementsByClassName(this.nameParamItem), (elem) => elem.parentNode == elemParent).map((elem) => {
+			elemParent.removeChild(elem);
+			return elem.dataset;
+		}));
+		return subArrData;
 	}
 	
 	//arrCountRenderableInRow
@@ -1595,12 +1576,12 @@ class MultiCircleGallery extends EventReceiver {
 	}
 	
 	getArrCountRenderableInRow() {
-		return this._cloneArrData(this._arrData, 0, true);
+		return this._mapArrData(this._arrData, true);
 	}
 	
 	//copy data into items
 	
-	_cloneArrData(srcData, numDimension, isForArrCountRenderableInRow, suffStrToIdWhenClone = "") {
+	_mapArrData(srcData, isForArrCountRenderableInRow, numDimension = 0, suffStrToIdWhenClone = "") {
 		let cpData;
 		if ((Array.isArray(srcData)) && (srcData.length)) {
 			let lengthCpData = srcData.length;
@@ -1612,16 +1593,13 @@ class MultiCircleGallery extends EventReceiver {
 			//clone id, aby się nie powtarzały id gdy duplikujemy dane, aby wypełniły arrCountRenderable
 			const addCharDimensionToIdWhenClone = MultiCircleGallery.ARR_CHAR_DIMENSION_TO_ID_WHEN_CLONE[numDimension];
 			for (let i = 0; i < lengthCpData; i++)
-				cpData[i] = this._cloneArrData(srcData[i % srcData.length], numDimension + 1, isForArrCountRenderableInRow, suffStrToIdWhenClone + addCharDimensionToIdWhenClone + String(i));
+				cpData[i] = this._mapArrData(srcData[i % srcData.length], isForArrCountRenderableInRow, numDimension + 1, suffStrToIdWhenClone + addCharDimensionToIdWhenClone + String(i));
 		} else {
 			if (isForArrCountRenderableInRow) cpData = null;
 			else {
 				let idWithSuff;
 				if ((srcData.propertyIsEnumerable("id")) && (!this._isEmptyIdItem(srcData.id))) idWithSuff = srcData.id + suffStrToIdWhenClone;
-				else {
-					idWithSuff = "gen" + String(this._idItemSequentGeneric++);
-					srcData = {value: srcData, id: idWithSuff}; 
-				}
+				else srcData.id = idWithSuff = "gen" + String(this._idItemSequentGeneric++);
 				//console.log("id:", idWithSuff)
 				if (!this.mapIdToIdWithSuff.get(srcData.id)) this.mapIdToIdWithSuff.set(srcData.id, idWithSuff);
 				const classForItem = this.getClassForItem(srcData.id, srcData);
@@ -1658,7 +1636,7 @@ class MultiCircleGallery extends EventReceiver {
 		this.elem.appendChild(this.elemContainerItem);
 		this._idItemSequentGeneric = 0;
 		this.mapIdToIdWithSuff = new Map();
-		this.arrItem = this._cloneArrData(this._arrData, 0, false);
+		this.arrItem = this._mapArrData(this._arrData, false);
 	}
 	
 	getClassForItem(id, objData) {
@@ -2244,10 +2222,7 @@ class MultiFlowGallery extends MultiCircleGallery {
 
 class Application extends MultiFlowGallery {
 	constructor() {
-		const arrData = [[{id : 0, color: 0xff3300}, {id: 1, color: 0xff3333}, {id: 2, color: 0xff3366}, {id: 3, color: 0xff3399}, {id: 4, color: 0xff33cc}, {id: 5, color: 0xff33ff}], [{id: 6, color: 0x0099cc}, {id: 7, color: 0x009999}, {id: 8, color: 0x009966}, {id: 9, color: 0x009933}], [{id: 10, color: 0x666666}, {id: 11, color: 0x999999}, {id: 12, color: 0xcccccc}], [{id: 13, color: 0xff9900}, {id: 14, color: 0xffcc00}]];
-		//const arrData = [[{id : 0, color: 0xff3300}], [{id: 1, color: 0x0099cc}]];
-		//const arrData = [[0xff3300, 0xff3333, 0xff3366, 0xff3399, 0xff33cc, 0xff33ff], [0x0099cc, 0x009999, 0x009966, 0x009933], [0x666666, 0x999999, 0xcccccc], [0xff9900, 0xffcc00]];
-		super("portfolio",  arrData, new OptionsControllerMulti(1, true, true, false));
+		super("portfolio", new OptionsControllerMulti(1, true, true, false));
 		$(window).resize(this.onWindowResize);
 		this.onWindowResize();
 	}

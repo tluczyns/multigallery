@@ -24,6 +24,7 @@ export default class MultiItemGallery {
 		this.objData = objData;
 		this.elem = document.createElement("div");
 		this.elem.className = this._nameParamItem;
+		this.elem.style.display = "block";
 		this.elem.onclick = this.onClick.bind(this);
 		this.styleElem = this.elem.style;
 	}
@@ -49,7 +50,7 @@ export default class MultiItemGallery {
 				stylesForDimensions[suffixNameStyle] = MapCssStyle.get(this._nameParamItem + "_dimension_" + String(i) + "_" + suffixNameStyle);
 			this.arrStylesForDimensions[i] = stylesForDimensions;
 		}
-		this.styleElem.backgroundColor = MathExt.convertColorUintToHTML(this.objData.color);
+		this.styleElem.backgroundColor = MathExt.convertColorUintToHTML(parseInt(this.objData.color.replace(/^#/, ''), 16));
 	}
 	
 	
